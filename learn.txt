@@ -1,0 +1,7 @@
+// Initial Setup
+    > config directory: 
+        - configuration files that define settings like database connections, API keys, or environment-specific configurations
+
+    > dto directory: 
+        - Data Transfer Objects (DTOs) are used to transfer data between different layers of an application, often between the application's backend and frontend.
+        - whenever we're sending some request, what kind of patter it will be and what kind of data only we will accept
