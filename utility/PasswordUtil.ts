@@ -33,6 +33,6 @@ export const SetTokenCookie = (res: Response, token: string) => {
 
     // Send JWT token in a HTTP-only cookie
     // HTTP-only cookies cannot be accessed by client-side JavaScript, which adds an extra layer of security.
-    return res.cookie('authToken', token, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 }); // Max age in milliseconds (1 day)
+    return res.cookie("authToken", token, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 }); // Max age in milliseconds (1 day)
 };
 

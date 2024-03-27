@@ -1,6 +1,7 @@
 import express from "express";
 import bodyParser from "body-parser";
 import mongoose from "mongoose";
+import cookieParser from 'cookie-parser';
 
 import { AdminRoute, VendorRoute } from "./routes";
 import { MONGO_URI } from './config';
@@ -18,6 +19,8 @@ app.use('/', (req, res, next) => {
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+app.use(cookieParser());
 
 app.use('/admin', AdminRoute);
 app.use('/vendor', VendorRoute);
