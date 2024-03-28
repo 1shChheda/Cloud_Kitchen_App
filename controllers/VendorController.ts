@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { VendorLoginInput } from '../dto';
+import { CreateFoodInputs, VendorLoginInput } from '../dto';
 import { FindVendor } from './AdminController';
 import { GenerateToken, SetTokenCookie, ValidatePassword } from '../utility';
+import { Food } from '../models';
 
 export const VendorLogin = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -97,8 +98,6 @@ export const updateVendorProfile = async (req: Request, res: Response, next: Nex
 
 // think of a on/off switch provided to vendor, to Unable/Disable Services (So, when we suggest Vendors, we only suggest Vendors who have their Services On)
 export const updateVendorService = async (req: Request, res: Response, next: NextFunction) => {
-    const { name, ownerName, foodType, pincode, address, phone } = req.body;
-
     try {
         const user = req.user;
 
@@ -120,6 +119,71 @@ export const updateVendorService = async (req: Request, res: Response, next: Nex
 
     } catch (error) {
         console.error("Error fetching vendor info:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+
+export const addFood = async (req: Request, res: Response, next: NextFunction) => {
+
+    try{
+        const user = req.user;
+        
+        if (!user) {
+            return res.status(404).json({ message: "Vendor Information not found" });
+        }
+        
+        const { name, description, category, foodType, readyTime, price } = <CreateFoodInputs>req.body;
+        
+        const vendor = await FindVendor(user._id);
+        if (!vendor) {
+            return res.status(404).json({ message: "Vendor does not exist!" });
+        }
+
+        const files = req.files as [Express.Multer.File];
+        const images = files.map((file: Express.Multer.File) => file.filename);
+
+        const createFood = await Food.create({
+            vendorId: vendor._id,
+            name,
+            description,
+            category,
+            foodType,
+            readyTime,
+            price,
+            rating: 0,
+            images: images
+        });
+
+        vendor.foods.push(createFood);
+        const savedResult = await vendor.save();
+
+        return res.json({ message: "New Food Added!", savedResult });
+        
+
+    } catch (error) {
+        console.error("Error adding food:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+
+}
+
+export const getFoods = async (req: Request, res:Response, next: NextFunction) => {
+    try {
+        const user = req.user;
+
+        if (!user) {
+            return res.status(404).json({ message: "Vendor Information not found" });
+        }
+        const foods = await Food.find({ vendorId: user._id });
+        if (foods.length == 0) {
+            return res.status(404).json({ message: "No Food Item found!" });
+        }
+
+        return res.status(200).json(foods);
+
+    } catch (error) {
+        console.error("Error adding food:", error);
         return res.status(500).json({ message: "Internal Server Error" });
     }
 }

@@ -14,7 +14,7 @@ interface VendorDoc extends Document {
     serviceAvailable: boolean;
     coverImages: [string];
     rating: number;
-    // foods: any
+    foods: any
 
 }
 
@@ -33,10 +33,10 @@ const VendorSchema = new Schema({
     serviceAvailable: { type: Boolean },
     coverImages: { type: [String] },
     rating: { type: Number },
-    // foods: [{
-    //     type: mongoose.SchemaTypes.ObjectId,
-    //     ref: 'food'
-    // }]
+    foods: [{
+        type: mongoose.SchemaTypes.ObjectId,
+        ref: 'food'
+    }]
 }, {
     toJSON: {
         // mongoose will call this function to allow you to transform the "returned object" (so we can handle what data is going to be sent in response)

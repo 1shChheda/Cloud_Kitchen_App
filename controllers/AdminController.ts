@@ -44,10 +44,11 @@ export const CreateVendor = async (req: Request, res: Response, next: NextFuncti
             salt: salt,
             rating: 0,
             serviceAvailable: false,
-            coverImages: []
+            coverImages: [],
+            foods: []
         });
     
-        return res.status(201).json(createVendor);
+        return res.status(201).json({ message: "New Vendor Added!", createVendor });
 
     } catch (error) {
         console.error("Error adding vendor:", error);

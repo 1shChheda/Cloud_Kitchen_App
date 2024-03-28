@@ -2,6 +2,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import mongoose from "mongoose";
 import cookieParser from 'cookie-parser';
+import path from "path";
 
 import { AdminRoute, VendorRoute } from "./routes";
 import { MONGO_URI } from './config';
@@ -19,6 +20,8 @@ app.use('/', (req, res, next) => {
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+app.use('/images', express.static(path.join(__dirname, 'images'))); // help us access image files from our server
 
 app.use(cookieParser());
 
