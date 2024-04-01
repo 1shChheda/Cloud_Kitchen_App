@@ -96,6 +96,36 @@ export const updateVendorProfile = async (req: Request, res: Response, next: Nex
     }
 }
 
+export const updateCoverImage = async (req: Request, res: Response, next: NextFunction) => {
+    try{
+        const user = req.user;
+        
+        if (!user) {
+            return res.status(404).json({ message: "Vendor Information not found" });
+        }
+        
+        
+        const vendor = await FindVendor(user._id);
+        if (!vendor) {
+            return res.status(404).json({ message: "Vendor does not exist!" });
+        }
+
+        const files = req.files as [Express.Multer.File];
+        const images = files.map((file: Express.Multer.File) => file.filename);
+
+        vendor.coverImages.push(...images);
+
+        const savedResult = await vendor.save();
+
+        return res.status(201).json({ message: "Cover Images Updated!", savedResult });
+        
+
+    } catch (error) {
+        console.error("Error updating coverImages:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
 // think of a on/off switch provided to vendor, to Unable/Disable Services (So, when we suggest Vendors, we only suggest Vendors who have their Services On)
 export const updateVendorService = async (req: Request, res: Response, next: NextFunction) => {
     try {

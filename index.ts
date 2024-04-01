@@ -1,42 +1,18 @@
-import express from "express";
-import bodyParser from "body-parser";
-import mongoose from "mongoose";
-import cookieParser from 'cookie-parser';
-import path from "path";
+import express from 'express';
+import App from './services/ExpressApp';
+import dbConn from './services/Database';
 
-import { AdminRoute, VendorRoute } from "./routes";
-import { MONGO_URI } from './config';
+const StartServer = async () => {
+    const app = express();
+    const PORT = 8080
 
-const app = express();
-const PORT = 8080
+    await dbConn();
 
-/* for initial test
-app.use('/', (req, res, next) => {
+    await App(app);
 
-    return res.status(200).json('Hello! Welcome to Backend')
+    app.listen(PORT, () => {
+        console.log(`Server running at ${PORT}`);
+    });
+}
 
-});
-*/
-
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-app.use('/images', express.static(path.join(__dirname, 'images'))); // help us access image files from our server
-
-app.use(cookieParser());
-
-app.use('/admin', AdminRoute);
-app.use('/vendor', VendorRoute);
-
-mongoose.connect(MONGO_URI)
-    .then(result => {
-        // console.log(result);
-        console.log("Database Connection Establised!");
-    }).catch(err => console.log(err));
-
-
-app.listen(PORT, () => {
-
-    console.clear();
-    console.log(`Server running at ${PORT}`);
-});
+StartServer();
