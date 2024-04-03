@@ -3,7 +3,7 @@ import bodyParser from "body-parser";
 import cookieParser from 'cookie-parser';
 import path from "path";
 
-import { AdminRoute, ShoppingRoute, VendorRoute } from "../routes";
+import { AdminRoute, ShoppingRoute, VendorRoute, UserRoute } from "../routes";
 
 export default async (app: Application) => {
     
@@ -16,6 +16,7 @@ export default async (app: Application) => {
     
     app.use('/admin', AdminRoute);
     app.use('/vendor', VendorRoute);
+    app.use('/user', UserRoute);
     app.use(ShoppingRoute);
 
     return app;

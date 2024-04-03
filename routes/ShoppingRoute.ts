@@ -4,19 +4,19 @@ import { getFoodAvailability, getFoodIn30Min, getRestaurantById, getTopRestauran
 const router = express.Router();
 
 
-/* ---------------- Food Availability ---------------- */
+// Food Availability
 router.get('/:pincode', getFoodAvailability);
 
-/* ---------------- Top Restaurants ---------------- */
+// Top Restaurants
 router.get('/top-restaurants/:pincode', getTopRestaurants);
 
-/* ---------------- Foods Available in 30 mins ---------------- */
+// Foods Available in 30 mins
 router.get('/foods-in-30-min/:pincode', getFoodIn30Min);
 
-/* ---------------- Search Foods ---------------- */
+// Search Foods
 router.get('/search/:pincode', searchFoods);
 
-/* ---------------- Find Restaurant by Id ---------------- */
+// Find Restaurant by Id
 router.get('/restaurant/:id', getRestaurantById);
 
 export { router as ShoppingRoute };
