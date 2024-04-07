@@ -24,8 +24,8 @@ const UserSchema = new Schema ({
     address: { type: String },
     phone: { type: String, required: true },
     verified: { type: Boolean, required: true },
-    otp: { type: Number, required: true },
-    otp_expiry: { type: Date, required: true },
+    otp: { type: Number, default: null },
+    otp_expiry: { type: Date, default: null },
     lat: { type: Number },
     lng: { type: Number }
 }, {

@@ -1,5 +1,6 @@
 import express from "express";
 import { GetUserProfile, RequestOtp, UserLogin, UserSignup, UserVerify } from "../controllers";
+import { UserTokenVerify, OTPTokenVerify } from "../middlewares";
 
 const router = express.Router();
 
@@ -10,13 +11,13 @@ router.post('/signup', UserSignup);
 router.post('/login', UserLogin);
 
 // User Verify
-router.post('/verify', UserVerify);
+router.post('/verify', OTPTokenVerify, UserVerify);
 
 // Otp
 router.post('/otp', RequestOtp);
 
 // User Profile
-router.post('/profile', GetUserProfile);
+router.get('/profile', UserTokenVerify, GetUserProfile);
 
 
 export { router as UserRoute };

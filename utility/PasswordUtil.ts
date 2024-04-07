@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { AuthPayload, VendorPayload } from '../dto';
+import { AuthPayload, UserAuthPayload } from '../dto';
 import { JWT_SECRET } from '../config';
 // Password Encryption & Decryption
 // generate a Salt
@@ -21,7 +21,19 @@ export const ValidatePassword = async (enteredPassword: string, savedPassword: s
     return await bcrypt.compare(enteredPassword, savedPassword);
 }
 
-export const GenerateToken = async (payload: VendorPayload) => {
+// specially for generating UserToken, 
+// since I tried using AuthPayload, but didnt work well alongside VendorPayload
+// thus, I created a separate UserPayload itself, for User stuff
+export const GenerateUserToken = async (payload: UserAuthPayload) => {
+    return await jwt.sign(
+        payload,
+        JWT_SECRET,
+        { expiresIn: '1d' }
+    );
+}
+
+// vendor stuff can continue using "AuthPayload" and corresponding Functions where AuthPayload is used.
+export const GenerateToken = async (payload: AuthPayload) => {
     return await jwt.sign(
         payload,
         JWT_SECRET,

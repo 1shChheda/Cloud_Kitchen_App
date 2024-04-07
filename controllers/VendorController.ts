@@ -29,9 +29,9 @@ export const VendorLogin = async (req: Request, res: Response, next: NextFunctio
             // Send JWT token in a HTTP-only cookie
             SetTokenCookie(res, token);
 
-            return res.json({ message: "Login Successful", existingVendor });
+            return res.status(200).json({ message: "Login Successful", existingVendor });
         } else {
-            return res.json({
+            return res.status(401).json({
                 message:
                     "Invalid Password! Try Again"
             });

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from 'jsonwebtoken';
-import { AuthPayload } from "../dto";
+import { AuthPayload, UserAuthPayload, VendorAuthPayload } from "../dto";
 import { JWT_SECRET } from '../config';
 
 
@@ -18,7 +18,7 @@ declare global {
 // Note: I tried to use "req.user" (alongside "next()") under TokenVerify under PasswordUtil.ts. But, It still didnt recognize "user" there. 
 // Meaning, we could only use "req.user" (alongside "next()") here, where we've mentioned the above code tp resolve the error
 
-export const TokenVerify = async (req: Request, res: Response, next: NextFunction) => {
+export const VendorTokenVerify = async (req: Request, res: Response, next: NextFunction) => {
 
     const token = req.cookies.authToken;
 
@@ -27,7 +27,46 @@ export const TokenVerify = async (req: Request, res: Response, next: NextFunctio
     }
 
     try {
-        const decoded = jwt.verify(token, JWT_SECRET) as AuthPayload;
+        const decoded = jwt.verify(token, JWT_SECRET) as VendorAuthPayload;
+        req.user = decoded; // attach user object to request for further processing
+        next();
+    } catch (error) {
+        console.error('Error verifying token:', error);
+        return res.status(401).json({ message: 'Unauthorized: Invalid token' });
+    }
+}
+
+export const OTPTokenVerify = async (req: Request, res: Response, next: NextFunction) => {
+
+    const token = req.cookies.authToken;
+
+    if(!token) {
+        return res.status(401).json({ message: "Access denied" });
+    }
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET) as UserAuthPayload;
+        req.user = decoded; // attach user object to request for further processing
+        next();
+    } catch (error) {
+        console.error('Error verifying token:', error);
+        return res.status(401).json({ message: 'Unauthorized: Invalid token' });
+    }
+}
+
+export const UserTokenVerify = async (req: Request, res: Response, next: NextFunction) => {
+
+    const token = req.cookies.authToken;
+
+    if(!token) {
+        return res.status(401).json({ message: "Access denied" });
+    }
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET) as UserAuthPayload;
+        if (!decoded.verified) {
+            return res.status(401).json({ message: "User not verified" });
+        }
         req.user = decoded; // attach user object to request for further processing
         next();
     } catch (error) {

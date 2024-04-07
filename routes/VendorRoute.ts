@@ -2,7 +2,7 @@ import express from "express";
 import multer from "multer";
 import fs from "fs";
 import { addFood, getFoods, getVendorProfile, updateCoverImage, updateVendorProfile, updateVendorService, VendorLogin } from "../controllers";
-import { TokenVerify } from "../middlewares";
+import { VendorTokenVerify } from "../middlewares";
 
 const router = express.Router();
 
@@ -24,12 +24,12 @@ const imageStorage = multer.diskStorage({
 const images = multer({ storage: imageStorage }).array('images', 10);
 
 router.post('/login', VendorLogin);
-router.get('/profile', TokenVerify, getVendorProfile);
-router.patch('/profile', TokenVerify, updateVendorProfile);
-router.patch('/coverimage', TokenVerify, images, updateCoverImage);
-router.patch('/service', TokenVerify, updateVendorService);
+router.get('/profile', VendorTokenVerify, getVendorProfile);
+router.patch('/profile', VendorTokenVerify, updateVendorProfile);
+router.patch('/coverimage', VendorTokenVerify, images, updateCoverImage);
+router.patch('/service', VendorTokenVerify, updateVendorService);
 
-router.post('/food', TokenVerify, images, addFood);
-router.get('/foods', TokenVerify, getFoods);
+router.post('/food', VendorTokenVerify, images, addFood);
+router.get('/foods', VendorTokenVerify, getFoods);
 
 export { router as VendorRoute };
