@@ -1,5 +1,4 @@
 import express, { Application } from "express";
-import bodyParser from "body-parser";
 import cookieParser from 'cookie-parser';
 import path from "path";
 
@@ -7,8 +6,8 @@ import { AdminRoute, ShoppingRoute, VendorRoute, UserRoute } from "../routes";
 
 export default async (app: Application) => {
     
-    app.use(bodyParser.json());
-    app.use(bodyParser.urlencoded({ extended: true }));
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
     
     app.use('/images', express.static(path.join(__dirname, 'images'))); // help us access image files from our server
     

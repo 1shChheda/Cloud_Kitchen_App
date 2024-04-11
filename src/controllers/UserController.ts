@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { plainToClass } from 'class-transformer'; // to help us convert the plain (literal) object to class (constructor) object
 import { validate } from 'class-validator';
-import { CreateUserInputs, UserLoginInput } from "../dto";
+import { CreateUserInputs, EditUserProfileInputs, UserLoginInputs } from "../dto";
 import { EncryptedPassword, GenerateSalt, ValidatePassword, GenerateToken, SetTokenCookie, onRequestOTP, GenerateOtp, GenerateUserToken } from "../utility";
 import { User } from "../models";
 
@@ -30,29 +30,46 @@ export const UserSignup = async (req: Request, res: Response, next: NextFunction
         // now, if no validation error occurs, we proceed with our Signup
         const { email, phone, password } = userInputs;
 
+        // THREE(3) scenarios:
+        // 1) User Exists & isVerified -> We cannot create same user again
+        const existingUser = await User.findOne({ email });
+        if (existingUser?.verified) {
+            return res.status(409).json({ message: "User already exists with this Email" });
+        }
+
         const salt = await GenerateSalt();
         const userPassword = await EncryptedPassword(password, salt);
 
-        // const { otp, expiryDateTime } = await GenerateOtp();
+        // 2) User Exists & isNOTVerified -> We cannot create same user again BUT, we update any new info he tries to enter (He might want to change the phone number, or password...But since we're creating the user already, we simply need to update these new details into the UserDoc)
+        if (existingUser?.verified === false) {
+            await User.findOneAndUpdate({ email }, {
+                password: userPassword,
+                salt,
+                phone,
+            });
 
-        // await onRequestOTP(otp, existingUser.phone);
+            return res.status(201).json({ message: "User Info Updated!. Please login to continue." });
+        }
 
-        const result = await User.create({
-            email,
-            password: userPassword,
-            salt,
-            phone,
-            verified: false, // user is not verified
-            firstName: '',
-            lastName: '',
-            address: '',
-            lat: 0,
-            lng: 0
-        });
+        // 3) User DoesNotExist & isCompletelyNew -> Create New User
+        if (!existingUser) {
+            const result = await User.create({
+                email,
+                password: userPassword,
+                salt,
+                phone,
+                verified: false, // user is not verified
+                firstName: '',
+                lastName: '',
+                address: '',
+                lat: 0,
+                lng: 0
+            });
 
-        // extra feature: send email to the user for account creation confirmation
+            // extra feature: send email to the user for account creation confirmation
 
-        return res.status(201).json({ message: "Account created successfully. Please login to continue." });
+            return res.status(201).json({ message: "Account created successfully. Please login to continue." });
+        }
 
     } catch (error) {
         console.error("Error user Signup:", error);
@@ -63,7 +80,7 @@ export const UserSignup = async (req: Request, res: Response, next: NextFunction
 export const UserLogin = async (req: Request, res: Response, next: NextFunction) => {
     try {
 
-        const { email, password } = <UserLoginInput>req.body;
+        const { email, password } = <UserLoginInputs>req.body;
 
         const existingUser = await User.findOne({ email });
 
@@ -88,15 +105,15 @@ export const UserLogin = async (req: Request, res: Response, next: NextFunction)
             if (!existingUser.verified) {
 
                 const { otp, expiryDateTime } = await GenerateOtp();
-    
+
                 await User.findOneAndUpdate({ email }, {
                     otp,
                     otp_expiry: expiryDateTime,
                     verified: existingUser.verified
                 });
-    
-                await onRequestOTP(otp, existingUser.phone); // for twilio SMS service
-    
+
+                // await onRequestOTP(otp, existingUser.phone); // for twilio SMS service
+
                 let loginResponse = { message: "OTP Sent to registered Mobile Number!" }
                 return res.status(200).json(loginResponse);
 
@@ -176,11 +193,56 @@ export const RequestOtp = async (req: Request, res: Response, next: NextFunction
 
 export const GetUserProfile = async (req: Request, res: Response, next: NextFunction) => {
     try {
+        const user = req.user;
 
-        return res.json({ message: "Reached User Dashboard!" });
+        if (!user) {
+            return res.status(404).json({ message: "User Information not found" });
+        }
+        
+        const profile = await User.findById(user._id);
+        if (!profile) {
+            return res.status(404).json({ message: "User Information not found" });
+        }
+
+        return res.status(200).json({ profile });
 
     } catch (error) {
         console.error("Error getting user Profile:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+export const EditUserProfile = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const user = req.user;
+
+        if (!user) {
+            return res.status(404).json({ message: "User Information not found" });
+        }
+
+        const profileInputs = plainToClass(EditUserProfileInputs, req.body);
+        const profileErrors = await validate(profileInputs, { validationError: { target: false } });
+
+        if(profileErrors.length > 0) {
+            return res.status(400).json(profileErrors);
+        }
+
+        const { firstName, lastName, address } = profileInputs;
+        
+        const profile = await User.findById(user._id);
+        if (!profile) {
+            return res.status(404).json({ message: "User Information not found" });
+        }
+
+        profile.firstName = firstName;
+        profile.lastName = lastName;
+        profile.address = address;
+        const result = await profile.save();
+
+        return res.status(200).json({ message: "User Profile Updated Successfully!", result });
+
+    } catch (error) {
+        console.error("Error updating user Profile:", error);
         return res.status(500).json({ message: "Internal Server Error" });
     }
 }

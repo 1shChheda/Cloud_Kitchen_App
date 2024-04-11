@@ -13,13 +13,30 @@ export class CreateUserInputs {
     phone: string;
 
     @IsNotEmpty({ message: 'Password cannot be empty' })
+    @Length(6, 12, { message: 'Password needs to be 6 to 12 characters long' })
     password: string;
 
 }
 
-export interface UserLoginInput {
+export class UserLoginInputs {
+
+    @IsEmail({}, { message: 'Invalid email address!' })
     email: string;
+    
+    @IsNotEmpty({ message: 'Password cannot be empty' })
+    @Length(6, 12, { message: 'Password needs to be 6 to 12 characters long' })
     password: string;
+}
+
+export class EditUserProfileInputs {
+
+    @Length(3, 16, { message: 'firstName needs to be Atleast 3 characters Long' })
+    firstName: string;
+
+    @Length(3, 16, { message: 'lastName needs to be Atleast 3 characters Long' })
+    lastName: string;
+
+    address: string;
 }
 
 export interface UserPayload {
