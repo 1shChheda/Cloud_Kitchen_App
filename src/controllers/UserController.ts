@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { plainToClass } from 'class-transformer'; // to help us convert the plain (literal) object to class (constructor) object
 import { validate } from 'class-validator';
-import { CreateUserInputs, EditUserProfileInputs, UserLoginInputs } from "../dto";
+import { CreateUserInputs, EditUserProfileInputs, OrderInputs, UserLoginInputs } from "../dto";
 import { EncryptedPassword, GenerateSalt, ValidatePassword, GenerateToken, SetTokenCookie, onRequestOTP, GenerateOtp, GenerateUserToken } from "../utility";
-import { User } from "../models";
+import { Food, Order, User } from "../models";
 
 // Basic Signup/Login/Auth Workflow in my head:
 // In user signup, I want it such that user is just able to create an account using email, phone number, and password. (not verified yet) (we may also send email to his email address, stating "thank you for registering with us" or something) (otp and expiryDateTime are null).
@@ -63,7 +63,8 @@ export const UserSignup = async (req: Request, res: Response, next: NextFunction
                 lastName: '',
                 address: '',
                 lat: 0,
-                lng: 0
+                lng: 0,
+                orders: []
             });
 
             // extra feature: send email to the user for account creation confirmation
@@ -243,6 +244,108 @@ export const EditUserProfile = async (req: Request, res: Response, next: NextFun
 
     } catch (error) {
         console.error("Error updating user Profile:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+export const CreateOrder = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const user = req.user;
+
+        if (!user) {
+            return res.status(404).json({ message: "User Information not found" });
+        }
+
+        const orderId = `${Math.floor(Math.random() * 89999) + 1000}`;
+
+        const profile = await User.findById(user._id);
+
+        const cart = <[OrderInputs]>req.body; // [ { id: XX, qty: XX } ]
+
+        let cartItems = Array();
+        let netAmount = 0.0;
+
+        const foods = await Food.find().where('_id').in(cart.map(item => item._id)).exec();
+
+        foods.forEach(food => {
+            cart.forEach(cartItem => {
+                if (food._id.toString() === cartItem._id) { // Convert ObjectId to string for comparison
+                    netAmount += (food.price * cartItem.qty);
+                    cartItems.push({ food, qty: cartItem.qty });
+                }
+            });
+        });
+        
+
+        if(cartItems.length === 0) {
+            return res.status(404).json({ message: "No Food Items Added to the Order!" });
+        }
+
+        const currentOrder = await Order.create({
+            orderId: orderId,
+            items: cartItems,
+            totalAmount: netAmount,
+            orderDate: new Date(),
+            paymentOption: 'COD',
+            paymentResponse: '',
+            orderStatus: 'Waiting'
+        });
+
+        if(!currentOrder) {
+            return res.status(404).json({ message: "Order Not Placed. Please Try Again" });
+        }
+
+        profile.orders.push(currentOrder);
+        await profile.save();
+
+        return res.status(201).json({ message: "Order Placed Successfully!", currentOrder });
+
+    } catch (error) {
+        console.error("Error creating Order:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+export const GetOrders = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const user = req.user;
+
+        if (!user) {
+            return res.status(404).json({ message: "User Information not found" });
+        }
+
+        const profile = await User.findById(user._id).populate("orders");
+
+        if (profile) {
+            return res.status(200).json(profile.orders);
+        }
+    } catch (error) {
+        console.error("Error getting user Orders:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+export const GetOrderById = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const user = req.user;
+
+        if (!user) {
+            return res.status(404).json({ message: "User Information not found" });
+        }
+
+        const orderId = req.params.id;
+
+        if(orderId) {
+            const order = await Order.findById(orderId).populate("items.food");
+    
+            if (order) {
+                return res.status(200).json(order);
+            }
+
+        }
+
+    } catch (error) {
+        console.error("Error getting OrderById:", error);
         return res.status(500).json({ message: "Internal Server Error" });
     }
 }

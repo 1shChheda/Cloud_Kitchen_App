@@ -44,3 +44,8 @@ export interface UserPayload {
     email: string;
     verified: boolean;
 }
+
+export class OrderInputs {
+    _id: string;
+    qty: number;
+}
