@@ -248,6 +248,124 @@ export const EditUserProfile = async (req: Request, res: Response, next: NextFun
     }
 }
 
+export const AddToCart = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const user = req.user;
+
+        if (!user) {
+            return res.status(404).json({ message: "User Information not found" });
+        }
+
+        const profile = await User.findById(user._id).populate("cart.food");
+        let cartItems = Array();
+
+        const { _id, qty } = <OrderInputs>req.body;
+
+        const food = await Food.findById(_id);
+
+        if (!food) {
+            return res.status(400).json({ message: "Food Item does not Exist!" });
+        }
+
+        if (!profile) {
+            return res.status(400).json({ message: "User Profile Not Found!" });
+        }
+
+        cartItems = profile.cart;
+        if (cartItems.length > 0) { // update existing cart
+            let existingFoodItem = cartItems.filter(item => item.food._id.toString() === _id);
+
+            if (existingFoodItem.length > 0) {
+                const index = cartItems.indexOf(existingFoodItem[0]);
+
+                if (qty > 0) { // if we really want to add specific qty of foodItem
+                    cartItems[index] = { food, qty }
+                } else { // if we want to remove that items from the cart (pass "0" as qty)
+                    cartItems.splice(index, 1);
+                }
+
+            } else {
+                cartItems.push({ food, qty });
+            }
+
+        } else { // create new cart
+            cartItems.push({ food, qty });
+        }
+
+        if (cartItems) {
+            profile.cart = cartItems as any;
+            const cartResult = await profile.save();
+
+            return res.status(201).json(cartResult.cart);
+        }
+
+    } catch (error) {
+        console.error("Error while adding to cart:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+export const GetCart = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const user = req.user;
+
+        if (!user) {
+            return res.status(404).json({ message: "User Information not found" });
+        }
+        
+        const profile = await User.findById(user._id).populate('cart.food');
+
+        let cartItems = Array();
+        cartItems = profile.cart;
+
+        if (!profile) {
+            return res.status(400).json({ message: "User Profile Not Found" });
+        }
+
+        if (cartItems.length === 0) {
+            return res.status(400).json({ message: "Cart is Empty!" });
+        }
+
+        return res.status(200).json(profile.cart);
+
+    } catch (error) {
+        console.error("Error while getting to cart:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+export const DeleteCart = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const user = req.user;
+
+        if (!user) {
+            return res.status(404).json({ message: "User Information not found" });
+        }
+
+        const profile = await User.findById(user._id).populate('cart.food');
+        
+        let cartItems = Array();
+        cartItems = profile.cart;
+
+        if (!profile) {
+            return res.status(400).json({ message: "User Profile Not Found" });
+        }
+
+        if (cartItems.length === 0) {
+            return res.status(400).json({ message: "Cart is Already Empty!" });
+        }
+
+        profile.cart = [] as any;
+        const cartResult = await profile.save()
+        return res.status(200).json(cartResult);
+
+    } catch (error) {
+        console.error("Error while deleting to cart:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+
 export const CreateOrder = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const user = req.user;
@@ -258,44 +376,50 @@ export const CreateOrder = async (req: Request, res: Response, next: NextFunctio
 
         const orderId = `${Math.floor(Math.random() * 89999) + 1000}`;
 
-        const profile = await User.findById(user._id);
+        const profile = await User.findById(user._id).populate("cart.food");
 
-        const cart = <[OrderInputs]>req.body; // [ { id: XX, qty: XX } ]
-
-        let cartItems = Array();
-        let netAmount = 0.0;
-
-        const foods = await Food.find().where('_id').in(cart.map(item => item._id)).exec();
-
-        foods.forEach(food => {
-            cart.forEach(cartItem => {
-                if (food._id.toString() === cartItem._id) { // Convert ObjectId to string for comparison
-                    netAmount += (food.price * cartItem.qty);
-                    cartItems.push({ food, qty: cartItem.qty });
-                }
-            });
-        });
-        
-
-        if(cartItems.length === 0) {
+        if (!profile || !profile.cart.length) {
             return res.status(404).json({ message: "No Food Items Added to the Order!" });
+        }
+
+        let netAmount = 0.0;
+        const cartItems = [];
+        let vendorId;
+
+        for (const cartItem of profile.cart) {
+            const food = await Food.findById(cartItem.food._id);
+            if (!food) {
+                return res.status(404).json({ message: "Food Item not found!" });
+            }
+            vendorId = food.vendorId;
+            netAmount += food.price * cartItem.qty;
+            cartItems.push({ food: cartItem.food, qty: cartItem.qty });
         }
 
         const currentOrder = await Order.create({
             orderId: orderId,
+            vendorId: vendorId, // Assuming all items are from the same vendor
             items: cartItems,
             totalAmount: netAmount,
             orderDate: new Date(),
             paymentOption: 'COD',
             paymentResponse: '',
-            orderStatus: 'Waiting'
+            orderStatus: 'Waiting',
+            remarks: '',
+            deliveryId: '',
+            appliedOffers: false,
+            offerId: null,
+            readyTime: 45,
         });
 
-        if(!currentOrder) {
+        if (!currentOrder) {
             return res.status(404).json({ message: "Order Not Placed. Please Try Again" });
         }
 
         profile.orders.push(currentOrder);
+
+        // Clear the user's cart after placing the order
+        profile.cart = [] as any;
         await profile.save();
 
         return res.status(201).json({ message: "Order Placed Successfully!", currentOrder });

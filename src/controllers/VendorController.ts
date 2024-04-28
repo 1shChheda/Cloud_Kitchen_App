@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { CreateFoodInputs, VendorLoginInput } from '../dto';
 import { FindVendor } from './AdminController';
 import { GenerateToken, SetTokenCookie, ValidatePassword } from '../utility';
-import { Food } from '../models';
+import { Food, Order } from '../models';
 
 export const VendorLogin = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -214,6 +214,90 @@ export const getFoods = async (req: Request, res:Response, next: NextFunction) =
 
     } catch (error) {
         console.error("Error adding food:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+export const getCurrentOrders = async (req: Request, res: Response, next: NextFunction) => {
+
+    try {
+        const user = req.user;
+
+        if (!user) {
+            return res.status(404).json({ message: "Vendor Information not found" });
+        }
+
+        const orders = await Order.find({ vendorId: user._id }).populate('items.food');
+
+        if (orders.length == 0) {
+            return res.status(404).json({ message: "No Orders Yet!" });
+        }
+
+        return res.status(200).json(orders);
+
+    } catch (error) {
+        console.log("Error getting vendor orders: ", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+export const getOrderDetails = async (req: Request, res: Response, next: NextFunction) => {
+
+    try {
+        const user = req.user;
+
+        if (!user) {
+            return res.status(404).json({ message: "Vendor Information not found" });
+        }
+
+        const orderId = req.params.id;
+        if (!orderId) {
+            return res.status(404).json({ message: "No OrderId provided!" });
+        }
+
+        const order = await Order.findById(orderId).populate('items.food');
+
+        if (!order) {
+            return res.status(404).json({ message: "No Such Order Exists!" });
+        }
+
+        return res.status(200).json(order);
+
+    } catch (error) {
+        console.log("Error getting order details: ", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+export const processOrder = async (req: Request, res: Response, next: NextFunction) => {
+
+    try {
+        const user = req.user;
+
+        if (!user) {
+            return res.status(404).json({ message: "Vendor Information not found" });
+        }
+
+        const orderId = req.params.id;
+        if (!orderId) {
+            return res.status(404).json({ message: "No OrderId provided!" });
+        }
+
+        const { status, remarks, time } = req.body;
+
+        const order = await Order.findById({ _id: orderId }).populate('items.food');
+
+        order.orderStatus = status;
+        order.remarks = remarks;
+
+        if (time) {
+            order.readyTime = time;
+        }
+
+        const orderResult = await order.save();
+        return res.status(200).json(orderResult);
+
+    } catch (error) {
+        console.log("Error getting processing order: ", error);
         return res.status(500).json({ message: "Internal Server Error" });
     }
 }

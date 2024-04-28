@@ -1,5 +1,5 @@
 import express from "express";
-import { CreateOrder, EditUserProfile, GetOrderById, GetOrders, GetUserProfile, RequestOtp, UserLogin, UserSignup, UserVerify } from "../controllers";
+import { AddToCart, CreateOrder, DeleteCart, EditUserProfile, GetCart, GetOrderById, GetOrders, GetUserProfile, RequestOtp, UserLogin, UserSignup, UserVerify } from "../controllers";
 import { UserTokenVerify, OTPTokenVerify } from "../middlewares";
 
 const router = express.Router();
@@ -24,6 +24,11 @@ router.patch('/profile', UserTokenVerify, EditUserProfile);
 router.post('/create-order', UserTokenVerify, CreateOrder);
 router.get('/orders', UserTokenVerify, GetOrders);
 router.get('/order/:id', UserTokenVerify, GetOrderById);
+
+// Cart
+router.post('/cart', UserTokenVerify, AddToCart);
+router.get('/cart', UserTokenVerify, GetCart);
+router.delete('/cart', UserTokenVerify, DeleteCart);
 
 
 export { router as UserRoute };

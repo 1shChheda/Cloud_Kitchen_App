@@ -9,7 +9,7 @@ export default async (app: Application) => {
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
     
-    app.use('/images', express.static(path.join(__dirname, 'images'))); // help us access image files from our server
+    app.use('/images', express.static(path.join(__dirname, '../images'))); // help us access image files from our server
     
     app.use(cookieParser());
     
