@@ -1,7 +1,7 @@
 import express from "express";
 import multer from "multer";
 import fs from "fs";
-import { addFood, getCurrentOrders, getFoods, getOrderDetails, getVendorProfile, processOrder, updateCoverImage, updateVendorProfile, updateVendorService, VendorLogin } from "../controllers";
+import { addFood, addOffer, editOffer, getCurrentOrders, getFoods, getOffers, getOrderDetails, getVendorProfile, processOrder, updateCoverImage, updateVendorProfile, updateVendorService, VendorLogin } from "../controllers";
 import { VendorTokenVerify } from "../middlewares";
 
 const router = express.Router();
@@ -36,5 +36,10 @@ router.get('/foods', VendorTokenVerify, getFoods);
 router.get('/orders', VendorTokenVerify, getCurrentOrders);
 router.put('/order/:id/process', VendorTokenVerify, processOrder);
 router.get('/order/:id', VendorTokenVerify, getOrderDetails);
+
+// Offers
+router.get('/offers', VendorTokenVerify, getOffers);
+router.post('/offer', VendorTokenVerify, addOffer);
+router.put('/offer/:id', VendorTokenVerify, editOffer);
 
 export { router as VendorRoute };

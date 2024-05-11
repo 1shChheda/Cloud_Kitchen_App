@@ -1,5 +1,5 @@
 import express from "express";
-import { AddToCart, CreateOrder, DeleteCart, EditUserProfile, GetCart, GetOrderById, GetOrders, GetUserProfile, RequestOtp, UserLogin, UserSignup, UserVerify } from "../controllers";
+import { AddToCart, CreateOrder, DeleteCart, EditUserProfile, GetCart, GetOrderById, GetOrders, GetUserProfile, RequestOtp, UserLogin, UserSignup, UserVerify, VerifyOffer } from "../controllers";
 import { UserTokenVerify, OTPTokenVerify } from "../middlewares";
 
 const router = express.Router();
@@ -24,6 +24,9 @@ router.patch('/profile', UserTokenVerify, EditUserProfile);
 router.post('/create-order', UserTokenVerify, CreateOrder);
 router.get('/orders', UserTokenVerify, GetOrders);
 router.get('/order/:id', UserTokenVerify, GetOrderById);
+
+// Apply Offer
+router.get('/offer/verify/:id', UserTokenVerify, VerifyOffer);
 
 // Cart
 router.post('/cart', UserTokenVerify, AddToCart);

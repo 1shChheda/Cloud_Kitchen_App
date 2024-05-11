@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { FoodDoc, Vendor } from '../models';
+import { FoodDoc, Vendor, Offer } from '../models';
 
 export const getFoodAvailability = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -66,6 +66,7 @@ export const getFoodIn30Min = async (req: Request, res: Response, next: NextFunc
         return res.status(500).json({ message: "Internal Server Error" });
     }
 }
+
 export const searchFoods = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const pincode = req.params.pincode;
@@ -86,12 +87,31 @@ export const searchFoods = async (req: Request, res: Response, next: NextFunctio
         return res.status(500).json({ message: "Internal Server Error" });
     }
 }
+
 export const getRestaurantById = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const id = req.params.id;
 
         const result = await Vendor.findById(id).populate('foods')
         return res.status(200).json(result);
+
+    } catch (error) {
+        console.error("Error fetching RestaurantById:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+export const getAvailableOffers = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const id = req.params.id;
+
+        const offers = await Offer.find({ isActive: true });
+
+        if (!offers) {
+            return res.status(404).json({ message: "Oops! No Offers Available" });
+        }
+
+        return res.status(200).json(offers);
 
     } catch (error) {
         console.error("Error fetching RestaurantById:", error);

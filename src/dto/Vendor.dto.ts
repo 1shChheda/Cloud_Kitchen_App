@@ -55,3 +55,20 @@ export interface VendorPayload {
     name: string;
     foodTypes: [string];
 }
+
+export interface CreateOfferInput {
+    offerType: string; // Vendor / Generic
+    vendors: [any]; // array of vendorIds that the offer applies to
+    title: string; // "Get 50% Off upto INR 200"
+    description: string; // any descp. / Terms & Conditions
+    minValue: number; // min order amt. to avail the offer
+    offerAmount: number; // 200
+    startValidity: Date;
+    endValidity: Date;
+    promocode: string; // NEWUSER200
+    promoType: string; // specific to: USER, BANK, CARD, ALL
+    bank: [any]; // if promoType: Bank, then which banks its applicable for
+    bins: [any];
+    pincode: string;
+    isActive: boolean;
+}

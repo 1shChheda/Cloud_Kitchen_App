@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { CreateFoodInputs, VendorLoginInput } from '../dto';
+import { CreateFoodInputs, CreateOfferInput, VendorLoginInput } from '../dto';
 import { FindVendor } from './AdminController';
 import { GenerateToken, SetTokenCookie, ValidatePassword } from '../utility';
-import { Food, Order } from '../models';
+import { Vendor, Food, Offer, Order } from '../models';
 
 export const VendorLogin = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -268,6 +268,7 @@ export const getOrderDetails = async (req: Request, res: Response, next: NextFun
         return res.status(500).json({ message: "Internal Server Error" });
     }
 }
+
 export const processOrder = async (req: Request, res: Response, next: NextFunction) => {
 
     try {
@@ -301,3 +302,147 @@ export const processOrder = async (req: Request, res: Response, next: NextFuncti
         return res.status(500).json({ message: "Internal Server Error" });
     }
 }
+
+export const getOffers = async (req: Request, res: Response, next: NextFunction) => {
+
+    try {
+        const user = req.user;
+
+        if (!user) {
+            return res.status(404).json({ message: "Vendor Information not found" });
+        }
+
+        // first, we'll retrieve all the offers on the app
+        // const offers = await Offer.find().populate('vendors');
+        const offers = await Offer.find();
+
+
+        if (offers.length == 0) {
+            return res.status(404).json({ message: "No Offers Available!" });
+        }
+        
+        // then, we'll only GET those offers that are valid for this LoggedIn Vendor
+        let currentOffers = Array();
+
+        offers.map(item => {
+
+            // 1) Those offers that are added by the Vendor itself
+            if (item.vendors) {
+                item.vendors.map(vendor => {
+                    if (vendor._id.toString() === user._id) {
+                        currentOffers.push(item);
+                    }
+                });
+            }
+
+            // 2) Those offers that are added by the App's admin (SuperAdmin), applicable for all users
+            if (item.offerType === "GENERIC") {
+                currentOffers.push(item);
+            }
+        });
+
+        return res.status(200).json(currentOffers);
+
+    } catch (error) {
+        console.log("Error getting offers: ", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+export const addOffer = async (req: Request, res: Response, next: NextFunction) => {
+
+    try {
+        const user = req.user;
+
+        if (!user) {
+            return res.status(404).json({ message: "Vendor Information not found" });
+        }
+
+        const { offerType, title, description, minValue, offerAmount, startValidity, endValidity, promocode, promoType, bank, bins, pincode, isActive } = <CreateOfferInput>req.body;
+
+        const vendor = await FindVendor(user._id);
+
+        if (!vendor) {
+            return res.status(404).json({ message: "No Vendor found! Please try Login again" });
+        }
+
+        const offer = await Offer.create({
+            title, 
+            description, 
+            offerType: "VENDOR", 
+            offerAmount, 
+            pincode: vendor.pincode, 
+            promocode, 
+            promoType, 
+            startValidity, 
+            endValidity, 
+            bank, 
+            bins, 
+            isActive, 
+            minValue, 
+            vendors: [vendor]
+        });
+
+        // console.log(offer);
+
+        return res.status(201).json({ 
+            message: "Offer Added Successfully!", 
+            offer 
+        });
+
+
+    } catch (error) {
+        console.log("Error getting offers: ", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+export const editOffer = async (req: Request, res: Response, next: NextFunction) => {
+    const { title, description, minValue, offerAmount, startValidity, endValidity, promocode, promoType, bank, bins, pincode, isActive } = req.body;
+
+    try {
+        const user = req.user;
+
+        if (!user) {
+            return res.status(404).json({ message: "Vendor Information not found" });
+        }
+
+        const vendor = await FindVendor(user._id);
+
+        if (!vendor) {
+            return res.status(404).json({ message: "No Vendor found! Please try Login again" });
+        }
+
+        const offerId = req.params.id;
+
+        const existingOffer = await Offer.findById(offerId);
+
+        if (!existingOffer) {
+            return res.status(404).json({ message: "Offer not found" });
+        }
+
+        // Update only the fields that are present in the request body
+        if (title) existingOffer.title = title;
+        if (description) existingOffer.description = description;
+        if (minValue) existingOffer.minValue = minValue;
+        if (offerAmount) existingOffer.offerAmount = offerAmount;
+        if (startValidity) existingOffer.startValidity = startValidity;
+        if (endValidity) existingOffer.endValidity = endValidity;
+        if (promocode) existingOffer.promocode = promocode;
+        if (promoType) existingOffer.promoType = promoType;
+        if (bank) existingOffer.bank = bank;
+        if (bins) existingOffer.bins = bins;
+        if (pincode) existingOffer.pincode = pincode;
+        if (isActive !== undefined) existingOffer.isActive = isActive;
+
+        const updatedOffer = await existingOffer.save();
+
+        return res.status(200).json({
+            message: "Offer updated successfully!",
+            offer: updatedOffer,
+        });
+    } catch (error) {
+        console.error("Error updating offer:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+};

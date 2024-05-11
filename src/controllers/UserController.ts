@@ -3,7 +3,7 @@ import { plainToClass } from 'class-transformer'; // to help us convert the plai
 import { validate } from 'class-validator';
 import { CreateUserInputs, EditUserProfileInputs, OrderInputs, UserLoginInputs } from "../dto";
 import { EncryptedPassword, GenerateSalt, ValidatePassword, GenerateToken, SetTokenCookie, onRequestOTP, GenerateOtp, GenerateUserToken } from "../utility";
-import { Food, Order, User } from "../models";
+import { Food, Offer, Order, User } from "../models";
 
 // Basic Signup/Login/Auth Workflow in my head:
 // In user signup, I want it such that user is just able to create an account using email, phone number, and password. (not verified yet) (we may also send email to his email address, stating "thank you for registering with us" or something) (otp and expiryDateTime are null).
@@ -396,6 +396,32 @@ export const CreateOrder = async (req: Request, res: Response, next: NextFunctio
             cartItems.push({ food: cartItem.food, qty: cartItem.qty });
         }
 
+        // Code to APPLY OFFER on the current Order
+        const offerId = req.body.offerId;
+
+        let appliedOffer: any = null;
+        let discountAmount = 0.0;
+
+        if (offerId) {
+            appliedOffer = await Offer.findById(offerId);
+
+            if (!appliedOffer) {
+                return res.status(404).json({ message: "Offer not found" });
+            }
+
+            // Check if the offer is applicable to the current order
+            if (
+                netAmount >= appliedOffer.minValue &&
+                appliedOffer.isActive &&
+                appliedOffer.vendors.includes(vendorId)
+            ) {
+                discountAmount = appliedOffer.offerAmount;
+                netAmount -= discountAmount;
+            } else {
+                return res.status(404).json({ message: "Oops! Offer is not applicable" });
+            }
+        }
+
         const currentOrder = await Order.create({
             orderId: orderId,
             vendorId: vendorId, // Assuming all items are from the same vendor
@@ -407,8 +433,8 @@ export const CreateOrder = async (req: Request, res: Response, next: NextFunctio
             orderStatus: 'Waiting',
             remarks: '',
             deliveryId: '',
-            appliedOffers: false,
-            offerId: null,
+            appliedOffers: offerId ? true : false, // Check if any offer is applied
+            offerId: offerId ? offerId : null, // Store the offer ID in the order // Only ONE OFFER can be applied PER ORDER
             readyTime: 45,
         });
 
@@ -473,3 +499,38 @@ export const GetOrderById = async (req: Request, res: Response, next: NextFuncti
         return res.status(500).json({ message: "Internal Server Error" });
     }
 }
+
+export const VerifyOffer = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const user = req.user;
+
+        if (!user) {
+            return res.status(404).json({ message: "User Information not found" });
+        }
+
+        const offerId = req.params.id;
+
+        const appliedOffer = await Offer.findById(offerId);
+
+        if (!appliedOffer) {
+            return res.status(404).json({ message: "Applied Offer does not exist!" });
+        }
+
+        if (appliedOffer.promoType === "USER") {
+            // only can apply ONCE PER USER
+
+
+        } else {
+            if (appliedOffer.isActive) {
+                return res.status(200).json({ message: 'Offer is Valid', offer: appliedOffer })
+            }
+        }
+
+        return res.status(200).json({ message: "Applied Offer is Invalid!" });
+
+    } catch (error) {
+        console.error("Error verifying Offer:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
